@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Activity, Mail, Lock, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FcGoogle } from "react-icons/fc";
 
 interface LoginPageProps {
   onLogin: (email: string, password: string, role: string) => void;
@@ -20,7 +21,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login, register } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const { login, register, loginWithGoogle } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +39,19 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       setError(err.message || "Authentication failed. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError("");
+    setGoogleLoading(true);
+
+    try {
+      await loginWithGoogle(activeTab as "admin" | "doctor" | "staff" | "patient");
+    } catch (err: any) {
+      setError(err.message || "Google sign-in failed. Please try again.");
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -127,10 +142,31 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={loading} data-testid="button-login">
+                <Button type="submit" className="w-full" disabled={loading || googleLoading} data-testid="button-login">
                   {loading ? "Please wait..." : isSignUp ? "Create Account" : `Sign In as ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
                 </Button>
               </form>
+
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                </div>
+              </div>
+
+              <Button 
+                type="button"
+                variant="outline" 
+                className="w-full" 
+                onClick={handleGoogleSignIn}
+                disabled={loading || googleLoading}
+                data-testid="button-google-signin"
+              >
+                <FcGoogle className="w-5 h-5 mr-2" />
+                {googleLoading ? "Signing in..." : `Sign in with Google as ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
+              </Button>
 
               <div className="mt-4 text-center">
                 <button
