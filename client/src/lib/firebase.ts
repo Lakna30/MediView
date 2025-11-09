@@ -9,7 +9,11 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
-  UserCredential
+  UserCredential,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult
 } from "firebase/auth";
 import { 
   getFirestore, 
@@ -126,6 +130,63 @@ export const logOut = async () => {
   } catch (error) {
     console.error('Error signing out:', error);
     return false;
+  }
+};
+
+// Google Sign-In functions
+const googleProvider = new GoogleAuthProvider();
+
+export const signInWithGoogle = async (role?: "admin" | "doctor" | "staff" | "patient") => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    
+    const existingProfile = await getUserProfile(user.uid);
+    
+    if (!existingProfile && role) {
+      const userProfile: UserProfile = {
+        role,
+        name: user.displayName || 'User',
+        email: user.email || '',
+        createdAt: serverTimestamp()
+      };
+      
+      await setDoc(doc(db, 'users', user.uid), userProfile);
+    }
+    
+    return user;
+  } catch (error: any) {
+    console.error('Error signing in with Google:', error);
+    throw error;
+  }
+};
+
+export const handleGoogleRedirectResult = async (role?: "admin" | "doctor" | "staff" | "patient") => {
+  try {
+    const result = await getRedirectResult(auth);
+    
+    if (result && result.user) {
+      const user = result.user;
+      const existingProfile = await getUserProfile(user.uid);
+      
+      if (!existingProfile && role) {
+        const userProfile: UserProfile = {
+          role,
+          name: user.displayName || 'User',
+          email: user.email || '',
+          createdAt: serverTimestamp()
+        };
+        
+        await setDoc(doc(db, 'users', user.uid), userProfile);
+      }
+      
+      return user;
+    }
+    
+    return null;
+  } catch (error: any) {
+    console.error('Error handling Google redirect:', error);
+    throw error;
   }
 };
 
