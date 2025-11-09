@@ -6,6 +6,9 @@ import {
   createNotification
 } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { db } from "@/lib/firebase";
+import { collection, query, where, orderBy, limit, onSnapshot } from "firebase/firestore";
 
 export interface Notification {
   id: string;
@@ -20,13 +23,46 @@ export interface Notification {
 export function useNotifications() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  const { data: notifications = [], isLoading, error } = useQuery<Notification[]>({
-    queryKey: ['notifications', user?.uid],
-    queryFn: () => getUserNotifications(user?.uid || ''),
-    enabled: !!user?.uid,
-    refetchInterval: 30000,
-  });
+  useEffect(() => {
+    if (!user?.uid) {
+      setNotifications([]);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
+        const notifs: Notification[] = [];
+        querySnapshot.forEach((doc) => {
+          notifs.push({ id: doc.id, ...doc.data() } as Notification);
+        });
+        setNotifications(notifs);
+        setIsLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error('Error fetching notifications:', err);
+        setError(err as Error);
+        setIsLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user?.uid]);
 
   const markAsReadMutation = useMutation({
     mutationFn: markNotificationAsRead,
@@ -45,7 +81,7 @@ export function useNotifications() {
   const createNotificationMutation = useMutation({
     mutationFn: createNotification,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?.uid] });
     },
   });
 
