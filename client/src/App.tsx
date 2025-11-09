@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import ThemeToggle from "@/components/ThemeToggle";
+import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/components/LoginPage";
 import AdminDashboard from "@/pages/AdminDashboard";
 import DoctorDashboard from "@/pages/DoctorDashboard";
@@ -37,6 +38,7 @@ import PatientDashboard from "@/pages/PatientDashboard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import doctorImage from '@assets/generated_images/Female_doctor_professional_headshot_cbc51cc9.png';
+import { useEffect } from "react";
 
 type UserRole = "admin" | "doctor" | "staff" | "patient" | null;
 
@@ -205,9 +207,9 @@ function Router({ role }: { role: UserRole }) {
   );
 }
 
-function AppContent() {
-  const { user, userProfile, loading, logout } = useAuth();
-
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, userProfile, loading } = useAuth();
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -220,9 +222,64 @@ function AppContent() {
   }
 
   if (!user || !userProfile) {
-    return <LoginPage onLogin={async () => {}} />;
+    return <Redirect to="/auth" />;
   }
 
+  return <>{children}</>;
+}
+
+function AppContent() {
+  const { user, userProfile, loading, logout } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!loading && user && userProfile) {
+      const currentPath = window.location.pathname;
+      if (currentPath === "/" || currentPath === "/auth") {
+        setLocation("/dashboard");
+      }
+    }
+  }, [user, userProfile, loading, setLocation]);
+
+  const handleLogout = async () => {
+    await logout();
+    setLocation("/");
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Activity className="w-12 h-12 text-primary mx-auto mb-4 animate-pulse" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Switch>
+      <Route path="/">
+        {() => user && userProfile ? <Redirect to="/dashboard" /> : <LandingPage />}
+      </Route>
+      <Route path="/auth">
+        {() => user && userProfile ? <Redirect to="/dashboard" /> : <LoginPage onLogin={async () => {}} />}
+      </Route>
+      <Route path="/dashboard">
+        <ProtectedRoute>
+          <DashboardLayout role={userProfile?.role || null} onLogout={handleLogout} />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/:rest*">
+        <ProtectedRoute>
+          <DashboardLayout role={userProfile?.role || null} onLogout={handleLogout} />
+        </ProtectedRoute>
+      </Route>
+    </Switch>
+  );
+}
+
+function DashboardLayout({ role, onLogout }: { role: UserRole; onLogout: () => void }) {
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
@@ -231,7 +288,7 @@ function AppContent() {
   return (
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full">
-        <AppSidebar role={userProfile.role} onLogout={logout} />
+        <AppSidebar role={role} onLogout={onLogout} />
         <div className="flex flex-col flex-1 min-w-0">
           <header className="flex items-center justify-between gap-4 p-4 border-b">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
@@ -242,7 +299,7 @@ function AppContent() {
           </header>
           <main className="flex-1 overflow-auto">
             <div className="container mx-auto p-6">
-              <Router role={userProfile.role} />
+              <Router role={role} />
             </div>
           </main>
         </div>

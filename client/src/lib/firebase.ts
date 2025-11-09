@@ -47,12 +47,20 @@ const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// User profile type
+export interface UserProfile {
+  role: "admin" | "doctor" | "staff" | "patient";
+  name: string;
+  email: string;
+  createdAt?: any;
+}
+
 // User profile functions
-export const getUserProfile = async (userId: string) => {
+export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
   try {
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (userDoc.exists()) {
-      return userDoc.data();
+      return userDoc.data() as UserProfile;
     }
     return null;
   } catch (error) {
@@ -90,14 +98,24 @@ export const signIn = async (email: string, password: string): Promise<User | nu
   }
 };
 
-export const signUp = async (email: string, password: string, displayName: string): Promise<User | null> => {
+export const signUp = async (email: string, password: string, displayName: string, role: "admin" | "doctor" | "staff" | "patient"): Promise<User | null> => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName });
+    
+    const userProfile: UserProfile = {
+      role,
+      name: displayName,
+      email,
+      createdAt: serverTimestamp()
+    };
+    
+    await setDoc(doc(db, 'users', userCredential.user.uid), userProfile);
+    
     return userCredential.user;
   } catch (error) {
     console.error('Error signing up:', error);
-    return null;
+    throw error;
   }
 };
 
