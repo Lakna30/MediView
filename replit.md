@@ -5,16 +5,33 @@ MediView is a comprehensive modern Hospital Management System built with React, 
 
 ## Recent Changes (November 2025)
 
+### Google Sign-In Authentication (Latest)
+- **Google OAuth**: Integrated Google Sign-In using Firebase Authentication
+- **Popup & Redirect Support**: Works across all browsers and devices (desktop, mobile, Safari)
+- **Role Assignment**: New Google users must select a role (Admin, Doctor, Staff, Patient) before signing in
+- **Returning Users**: Existing Google users can sign in without re-specifying their role
+- **Error Handling**: Clear error messages for missing role selection with proper validation
+
+### Landing Page Enhancement
+- **Navigation Sections**: Added Home, About Us, Doctors, and Contact Us sections
+- **Smooth Scroll**: Implemented smooth scrolling navigation between sections
+- **Sticky Header**: Navigation bar stays visible while scrolling
+- **Doctor Profiles**: Showcase of medical team with specialties and experience
+- **Contact Information**: Complete contact details, office hours, and emergency line
+- **Responsive Design**: Mobile-friendly navigation and layout
+
 ### Firebase Integration - Data Layer Complete
 - **Firebase SDK**: Configured Firebase authentication and Firestore database
 - **Custom Hooks**: Created `usePatients`, `useAppointments`, and `useMedicalRecords` hooks for data management with React Query
 - **Data Entry Forms**: Built `AddPatientDialog` and `AddAppointmentDialog` components for creating new records
 - **Admin Dashboard**: Updated to fetch and display real Firebase data with search and filtering
+- **Real-Time Notifications**: Implemented Firestore onSnapshot listeners for instant notification updates
 
 ### Authentication System
 - **AuthContext**: Implemented with role-based access control (Admin, Doctor, Staff, Patient)
 - **Protected Routes**: Routes automatically redirect based on user role
-- **Firebase Auth**: Email/password authentication with user role management
+- **Firebase Auth**: Email/password and Google OAuth authentication with user role management
+- **Multi-Provider Support**: Users can sign in with email/password or Google account
 
 ## Project Architecture
 
@@ -113,12 +130,16 @@ MedicalRecord {
 
 ### Completed
 - ✅ Full UI/UX design prototype for all role-based dashboards
-- ✅ Firebase configuration and authentication system
+- ✅ Firebase configuration and authentication system (email/password + Google OAuth)
 - ✅ Custom hooks for data management (patients, appointments, medical records)
 - ✅ Patient and appointment creation dialogs
 - ✅ Admin Dashboard with real Firebase data integration
 - ✅ Reusable components (StatCard, AppointmentCard, PatientCard, HealthCard)
 - ✅ QR code generation for patient identification
+- ✅ Real-time notification system with Firestore onSnapshot
+- ✅ Modern landing page with navigation sections
+- ✅ Google Sign-In authentication with role assignment
+- ✅ Smooth scroll navigation between page sections
 
 ### In Progress
 - 🔄 Testing authentication flow and data operations
@@ -126,7 +147,6 @@ MedicalRecord {
 
 ### Planned
 - ⏳ Medical records management interface
-- ⏳ Real-time notification system
 - ⏳ Appointment calendar with availability tracking
 - ⏳ Staff management module
 - ⏳ Report generation and analytics
@@ -160,9 +180,11 @@ SESSION_SECRET
 - **Patient**: View personal health information, book appointments
 
 ### Security
-- Firebase authentication with email/password
-- Role-based route protection
+- Firebase authentication with email/password and Google OAuth
+- Role-based route protection with automatic redirects
 - Secure Firestore rules for data access control
+- OAuth flow with proper error handling and validation
+- Role assignment enforcement for new Google sign-in users
 
 ## Development Notes
 - All interactive elements include `data-testid` attributes for testing
