@@ -1,0 +1,312 @@
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import { 
+  getAuth, 
+  onAuthStateChanged, 
+  User, 
+  signOut, 
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  UserCredential
+} from "firebase/auth";
+import { 
+  getFirestore, 
+  doc, 
+  getDoc, 
+  setDoc, 
+  deleteDoc,
+  collection, 
+  addDoc, 
+  serverTimestamp,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  where
+} from "firebase/firestore";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyA5qVGbyJnQjyQCtxt5YHPr55pph2EJ5xc",
+  authDomain: "mediview-50a05.firebaseapp.com",
+  projectId: "mediview-50a05",
+  storageBucket: "mediview-50a05.firebasestorage.app",
+  messagingSenderId: "106923732067",
+  appId: "1:106923732067:web:2d5e8c9f982c7b2dc01c56",
+  measurementId: "G-RVPLTZ6JQH"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// User profile functions
+export const getUserProfile = async (userId: string) => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists()) {
+      return userDoc.data();
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    return null;
+  }
+};
+
+export const updateUserProfile = async (userId: string, data: any) => {
+  try {
+    await setDoc(doc(db, 'users', userId), data, { merge: true });
+    return true;
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    return false;
+  }
+};
+
+// Auth state observer
+export const onAuthStateChange = (callback: (user: User | null) => void) => {
+  return onAuthStateChanged(auth, callback);
+};
+
+// Alias for backward compatibility
+export const onAuthChange = onAuthStateChange;
+
+// Authentication functions
+export const signIn = async (email: string, password: string): Promise<User | null> => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential.user;
+  } catch (error) {
+    console.error('Error signing in:', error);
+    return null;
+  }
+};
+
+export const signUp = async (email: string, password: string, displayName: string): Promise<User | null> => {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(userCredential.user, { displayName });
+    return userCredential.user;
+  } catch (error) {
+    console.error('Error signing up:', error);
+    return null;
+  }
+};
+
+export const logOut = async () => {
+  try {
+    await signOut(auth);
+    return true;
+  } catch (error) {
+    console.error('Error signing out:', error);
+    return false;
+  }
+};
+
+// Patient functions
+export const createPatient = async (patientData: any) => {
+  try {
+    // Add server-side timestamp
+    const patientWithTimestamp = {
+      ...patientData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    
+    const docRef = await addDoc(collection(db, 'patients'), patientWithTimestamp);
+    return { id: docRef.id, ...patientWithTimestamp };
+  } catch (error) {
+    console.error('Error creating patient:', error);
+    throw error;
+  }
+};
+
+export const getAllPatients = async (options: { 
+  limit?: number, 
+  orderByField?: string, 
+  orderDirection?: 'asc' | 'desc',
+  whereClause?: { field: string, operator: '==' | '!=' | '<' | '<=' | '>' | '>=', value: any }
+} = {}) => {
+  try {
+    const {
+      limit: queryLimit = 1000, // Default limit to prevent loading too much data
+      orderByField = 'createdAt',
+      orderDirection = 'desc',
+      whereClause
+    } = options;
+
+    let q = query(
+      collection(db, 'patients'),
+      orderBy(orderByField, orderDirection),
+      limit(queryLimit)
+    );
+
+    if (whereClause) {
+      q = query(q, where(whereClause.field, whereClause.operator, whereClause.value));
+    }
+
+    const querySnapshot = await getDocs(q);
+    const patients: any[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      patients.push({ id: doc.id, ...doc.data() });
+    });
+
+    return patients;
+  } catch (error) {
+    console.error('Error getting patients:', error);
+    throw error;
+  }
+};
+
+export const updatePatient = async (patientId: string, updates: any) => {
+  try {
+    const patientRef = doc(db, 'patients', patientId);
+    
+    // Add updatedAt timestamp
+    const updatesWithTimestamp = {
+      ...updates,
+      updatedAt: serverTimestamp()
+    };
+    
+    await setDoc(patientRef, updatesWithTimestamp, { merge: true });
+    
+    // Get the updated patient data
+    const updatedDoc = await getDoc(patientRef);
+    if (updatedDoc.exists()) {
+      return { id: updatedDoc.id, ...updatedDoc.data() };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error updating patient:', error);
+    throw error;
+  }
+};
+
+export const getPatient = async (patientId: string) => {
+  try {
+    const docRef = doc(db, 'patients', patientId);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() };
+    } else {
+      console.log('No such patient!');
+      return null;
+    }
+  } catch (error) {
+    console.error('Error getting patient:', error);
+    throw error;
+  }
+};
+
+// Appointment functions
+export const createAppointment = async (appointmentData: any) => {
+  try {
+    // Add timestamps
+    const appointmentWithTimestamps = {
+      ...appointmentData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      status: appointmentData.status || 'scheduled' // default status
+    };
+    
+    const docRef = await addDoc(collection(db, 'appointments'), appointmentWithTimestamps);
+    return { id: docRef.id, ...appointmentWithTimestamps };
+  } catch (error) {
+    console.error('Error creating appointment:', error);
+    throw error;
+  }
+};
+
+export const updateAppointment = async (appointmentId: string, updates: any) => {
+  try {
+    const appointmentRef = doc(db, 'appointments', appointmentId);
+    
+    // Add updatedAt timestamp
+    const updatesWithTimestamp = {
+      ...updates,
+      updatedAt: serverTimestamp()
+    };
+    
+    await setDoc(appointmentRef, updatesWithTimestamp, { merge: true });
+    
+    // Get the updated appointment data
+    const updatedDoc = await getDoc(appointmentRef);
+    if (updatedDoc.exists()) {
+      return { id: updatedDoc.id, ...updatedDoc.data() };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error updating appointment:', error);
+    throw error;
+  }
+};
+
+export const deleteAppointment = async (appointmentId: string): Promise<boolean> => {
+  try {
+    const appointmentRef = doc(db, 'appointments', appointmentId);
+    await deleteDoc(appointmentRef);
+    return true;
+  } catch (error) {
+    console.error('Error deleting appointment:', error);
+    throw error;
+  }
+};
+
+export const getAppointments = async (options: {
+  patientId?: string;
+  doctorId?: string;
+  startDate?: Date;
+  endDate?: Date;
+  status?: string;
+  limit?: number;
+} = {}) => {
+  try {
+    let q = query(
+      collection(db, 'appointments'),
+      orderBy('appointmentDate', 'asc')
+    );
+
+    const { 
+      patientId, 
+      doctorId, 
+      startDate, 
+      endDate, 
+      status, 
+      limit: queryLimit = 100 
+    } = options;
+
+    if (patientId) q = query(q, where('patientId', '==', patientId));
+    if (doctorId) q = query(q, where('doctorId', '==', doctorId));
+    if (status) q = query(q, where('status', '==', status));
+    if (startDate) q = query(q, where('appointmentDate', '>=', startDate));
+    if (endDate) q = query(q, where('appointmentDate', '<=', endDate));
+    
+    q = query(q, limit(queryLimit));
+    
+    const querySnapshot = await getDocs(q);
+    const appointments: any[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      appointments.push({ id: doc.id, ...doc.data() });
+    });
+
+    return appointments;
+  } catch (error) {
+    console.error('Error getting appointments:', error);
+    throw error;
+  }
+};
+
+export { auth, db };
