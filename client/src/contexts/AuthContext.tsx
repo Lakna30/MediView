@@ -8,7 +8,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string, role: "admin" | "doctor" | "staff" | "patient") => Promise<void>;
-  loginWithGoogle: (role: "admin" | "doctor" | "staff" | "patient") => Promise<void>;
+  loginWithGoogle: (role?: "admin" | "doctor" | "staff" | "patient") => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signUp(email, password, name, role);
   };
 
-  const loginWithGoogle = async (role: "admin" | "doctor" | "staff" | "patient") => {
+  const loginWithGoogle = async (role?: "admin" | "doctor" | "staff" | "patient") => {
     await signInWithGoogle(role);
   };
 

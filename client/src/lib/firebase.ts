@@ -143,7 +143,11 @@ export const signInWithGoogle = async (role?: "admin" | "doctor" | "staff" | "pa
     
     const existingProfile = await getUserProfile(user.uid);
     
-    if (!existingProfile && role) {
+    if (!existingProfile) {
+      if (!role) {
+        throw new Error('Role is required for new Google sign-in users. Please select a role before signing in.');
+      }
+      
       const userProfile: UserProfile = {
         role,
         name: user.displayName || 'User',
@@ -169,7 +173,11 @@ export const handleGoogleRedirectResult = async (role?: "admin" | "doctor" | "st
       const user = result.user;
       const existingProfile = await getUserProfile(user.uid);
       
-      if (!existingProfile && role) {
+      if (!existingProfile) {
+        if (!role) {
+          throw new Error('Role is required for new Google sign-in users. Please select a role before signing in.');
+        }
+        
         const userProfile: UserProfile = {
           role,
           name: user.displayName || 'User',
