@@ -327,4 +327,82 @@ export const getAppointments = async (options: {
   }
 };
 
+// Notification functions
+export const createNotification = async (notificationData: {
+  userId: string;
+  type: "appointment" | "record" | "patient" | "system";
+  title: string;
+  message: string;
+  isRead?: boolean;
+}) => {
+  try {
+    const notification = {
+      ...notificationData,
+      isRead: notificationData.isRead || false,
+      createdAt: serverTimestamp(),
+    };
+    
+    const docRef = await addDoc(collection(db, 'notifications'), notification);
+    return { id: docRef.id, ...notification };
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    throw error;
+  }
+};
+
+export const getUserNotifications = async (userId: string, limitCount: number = 50) => {
+  try {
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc'),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const notifications: any[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      notifications.push({ id: doc.id, ...doc.data() });
+    });
+    
+    return notifications;
+  } catch (error) {
+    console.error('Error getting notifications:', error);
+    throw error;
+  }
+};
+
+export const markNotificationAsRead = async (notificationId: string) => {
+  try {
+    const notificationRef = doc(db, 'notifications', notificationId);
+    await setDoc(notificationRef, { isRead: true }, { merge: true });
+    return true;
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    throw error;
+  }
+};
+
+export const markAllNotificationsAsRead = async (userId: string) => {
+  try {
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', userId),
+      where('isRead', '==', false)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const updatePromises = querySnapshot.docs.map(doc => 
+      setDoc(doc.ref, { isRead: true }, { merge: true })
+    );
+    
+    await Promise.all(updatePromises);
+    return true;
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error);
+    throw error;
+  }
+};
+
 export { auth, db };
