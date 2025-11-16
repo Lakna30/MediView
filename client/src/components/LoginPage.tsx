@@ -31,7 +31,14 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
     try {
       if (isSignUp) {
-        await register(email, password, name, activeTab as "admin" | "doctor" | "staff" | "patient");
+        const success = await register(email, password, name, activeTab as "admin" | "doctor" | "staff" | "patient");
+        if (success) {
+          // Clear form and switch to login
+          setEmail("");
+          setPassword("");
+          setName("");
+          setIsSignUp(false);
+        }
       } else {
         await login(email, password);
       }

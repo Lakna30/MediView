@@ -1,6 +1,9 @@
-import { Switch, Route, useLocation, Redirect, Link } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
+import { Link } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { User } from "firebase/auth";
+import { auth, getUserProfile, UserProfile, signIn, signUp, logOut, onAuthChange, signInWithGoogle } from "@/lib/firebase";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -81,11 +84,20 @@ function AppSidebar({ role, onLogout }: { role: UserRole; onLogout: () => void }
     role === "staff" ? staffMenuItems :
     patientMenuItems;
 
-  const getRoleName = (role: UserRole) => {
+  const { user, userProfile } = useAuth();
+
+  const getDisplayName = () => {
+    // Use the user's display name from Firebase Auth if available
+    if (user?.displayName) return user.displayName;
+    
+    // Fall back to user profile name if available
+    if (userProfile?.name) return userProfile.name;
+    
+    // Default role-based names
     if (role === "admin") return "Administrator";
-    if (role === "doctor") return "Dr. Sarah Johnson";
+    if (role === "doctor") return "Dr. Smith";
     if (role === "staff") return "Staff Member";
-    return "Emily Chen";
+    return "Patient";
   };
 
   const mockNotifications = [
@@ -127,12 +139,12 @@ function AppSidebar({ role, onLogout }: { role: UserRole; onLogout: () => void }
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(' ', '-')}`}>
+                  <Link href={item.url} className="w-full">
+                    <SidebarMenuButton className="w-full justify-start" data-testid={`nav-${item.title.toLowerCase().replace(' ', '-')}`}>
                       <item.icon className="w-4 h-4" />
                       <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
+                    </SidebarMenuButton>
+                  </Link>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -144,13 +156,13 @@ function AppSidebar({ role, onLogout }: { role: UserRole; onLogout: () => void }
             <div className="p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <Avatar className="w-10 h-10">
-                  <AvatarImage src={doctorImage} alt="User" />
+                  <AvatarImage src={user?.photoURL || doctorImage} alt={getDisplayName()} />
                   <AvatarFallback>
-                    {getRoleName(role).split(' ').map(n => n[0]).join('')}
+                    {getDisplayName().split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{getRoleName(role)}</p>
+                  <p className="text-sm font-medium truncate" data-testid="user-display-name">{getDisplayName()}</p>
                   <p className="text-xs text-muted-foreground capitalize">{role}</p>
                 </div>
               </div>

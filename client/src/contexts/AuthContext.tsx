@@ -7,7 +7,7 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, role: "admin" | "doctor" | "staff" | "patient") => Promise<void>;
+  register: (email: string, password: string, name: string, role: "admin" | "doctor" | "staff" | "patient") => Promise<boolean>;
   loginWithGoogle: (role?: "admin" | "doctor" | "staff" | "patient") => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -18,6 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [justSignedUp, setJustSignedUp] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthChange(async (user) => {
@@ -25,6 +26,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (user) {
         const profile = await getUserProfile(user.uid);
         setUserProfile(profile);
+        
+        // If we just signed up, don't redirect, just update the state
+        if (justSignedUp) {
+          setJustSignedUp(false);
+          return;
+        }
       } else {
         setUserProfile(null);
       }
@@ -32,14 +39,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return unsubscribe;
-  }, []);
+  }, [justSignedUp]);
 
   const login = async (email: string, password: string) => {
     await signIn(email, password);
   };
 
   const register = async (email: string, password: string, name: string, role: "admin" | "doctor" | "staff" | "patient") => {
+    setJustSignedUp(true);
     await signUp(email, password, name, role);
+    return true;
   };
 
   const loginWithGoogle = async (role?: "admin" | "doctor" | "staff" | "patient") => {
