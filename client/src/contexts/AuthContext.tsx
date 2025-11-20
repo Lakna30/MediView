@@ -21,24 +21,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [justSignedUp, setJustSignedUp] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthChange(async (user) => {
-      setUser(user);
-      if (user) {
-        const profile = await getUserProfile(user.uid);
-        setUserProfile(profile);
-        
-        // If we just signed up, don't redirect, just update the state
-        if (justSignedUp) {
-          setJustSignedUp(false);
-          return;
+    let isMounted = true;
+    
+    const handleAuthChange = async (user: User | null) => {
+      try {
+        if (user) {
+          const profile = await getUserProfile(user.uid);
+          if (isMounted) {
+            setUser(user);
+            setUserProfile(profile);
+            
+            // If we just signed up, don't redirect, just update the state
+            if (justSignedUp) {
+              setJustSignedUp(false);
+              setLoading(false);
+              return;
+            }
+          }
+        } else {
+          if (isMounted) {
+            setUser(null);
+            setUserProfile(null);
+          }
         }
-      } else {
-        setUserProfile(null);
+      } catch (error) {
+        console.error('Error in auth state change:', error);
+        // Ensure we don't get stuck in loading state on error
+        if (isMounted) {
+          setUser(null);
+          setUserProfile(null);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
-    });
+    };
 
-    return unsubscribe;
+    // Set up the auth state listener
+    const unsubscribe = onAuthChange(handleAuthChange);
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [justSignedUp]);
 
   const login = async (email: string, password: string) => {

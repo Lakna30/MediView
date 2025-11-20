@@ -13,7 +13,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
 
 export default function NotificationBell() {
-  const { notifications, isLoading, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, isLoading, unreadCount, markAsRead, markAllAsRead, error } = useNotifications();
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -73,7 +73,23 @@ export default function NotificationBell() {
           )}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {isLoading ? (
+        {error ? (
+          <div className="p-4 text-center text-sm text-destructive">
+            {('code' in error && error.code === 'MISSING_INDEX') ? (
+              <a 
+                href={error.message.split('Click here to create it: ')[1]} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {error.message.split('Click here to create it:')[0]}
+              </a>
+            ) : (
+              'Failed to load notifications'
+            )}
+          </div>
+        ) : isLoading ? (
           <div className="p-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin" />
             Loading notifications...

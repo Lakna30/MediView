@@ -36,32 +36,50 @@ export function useNotifications() {
 
     setIsLoading(true);
     
-    const q = query(
-      collection(db, 'notifications'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
-      limit(50)
-    );
+    try {
+      const q = query(
+        collection(db, 'notifications'),
+        where('userId', '==', user.uid),
+        orderBy('createdAt', 'desc'),
+        limit(50)
+      );
 
-    const unsubscribe = onSnapshot(
-      q,
-      (querySnapshot) => {
-        const notifs: Notification[] = [];
-        querySnapshot.forEach((doc) => {
-          notifs.push({ id: doc.id, ...doc.data() } as Notification);
-        });
-        setNotifications(notifs);
-        setIsLoading(false);
-        setError(null);
-      },
-      (err) => {
-        console.error('Error fetching notifications:', err);
-        setError(err as Error);
-        setIsLoading(false);
-      }
-    );
+      const unsubscribe = onSnapshot(
+        q,
+        (querySnapshot) => {
+          const notifs: Notification[] = [];
+          querySnapshot.forEach((doc) => {
+            notifs.push({ id: doc.id, ...doc.data() } as Notification);
+          });
+          setNotifications(notifs);
+          setIsLoading(false);
+          setError(null);
+        },
+        (err) => {
+          console.error('Error fetching notifications:', err);
+          // If it's a missing index error, show a more helpful message
+          if (err.code === 'failed-precondition' && err.message.includes('index')) {
+            const errorWithLink = new Error(
+              'Please create a Firestore index for notifications. ' +
+              'Click here to create it: ' + 
+              'https://console.firebase.google.com/project/_/firestore/indexes?create_composite=Cktwcm9qZWN0cy9tZWRpdmlldy01MGEwNS9kYXRhYmFzZXMvKGRlZmF1bHQpL2NvbGxlY3Rpb25Hcm91cHMvbm90aWZpY2F0aW9ucw' + 
+              'pQbW9kZWxzL25vdGlmaWNhdGlvbnMvaW5kZXhlcy9fEAEaCgoGdXNlcklkEAEaDQoJY3JlYXRlZEF0EAIaDAoIX19uYW1lX18QAg'
+            ) as Error & { code?: string };
+            errorWithLink.code = 'MISSING_INDEX';
+            setError(errorWithLink);
+          } else {
+            setError(err as Error);
+          }
+          setIsLoading(false);
+        }
+      );
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (err) {
+      console.error('Error setting up notifications:', err);
+      setError(err as Error);
+      setIsLoading(false);
+    }
   }, [user?.uid]);
 
   const markAsReadMutation = useMutation({
