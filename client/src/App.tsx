@@ -7,7 +7,6 @@ import { auth, getUserProfile, UserProfile, signIn, signUp, logOut, onAuthChange
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
 import {
   Sidebar,
   SidebarContent,
@@ -39,16 +38,14 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import DoctorDashboard from "@/pages/DoctorDashboard";
 import StaffDashboard from "@/pages/StaffDashboard";
 import PatientDashboard from "@/pages/PatientDashboard";
-import PatientDashboardPage from "@/pages/patient/DashboardPage";
-import PatientAppointmentsPage from "@/pages/patient/AppointmentsPage";
-import PatientRecordsPage from "@/pages/patient/RecordsPage";
-import PatientHealthCardPage from "@/pages/patient/HealthCardPage";
-import PatientSettingsPage from "@/pages/patient/SettingsPage";
-import AppointmentsPage from "@/pages/admin/AppointmentsPage";
-import PatientsPage from "@/pages/admin/PatientsPage";
-import StaffPage from "@/pages/admin/StaffPage";
-import ReportsPage from "@/pages/admin/ReportsPage";
-import SettingsPage from "@/pages/admin/SettingsPage";
+import AppointmentsPage from "@/pages/AppointmentsPage";
+import PatientsPage from "@/pages/PatientsPage";
+import StaffPage from "@/pages/StaffPage";
+import ReportsPage from "@/pages/ReportsPage";
+import SettingsPage from "@/pages/SettingsPage";
+import SchedulePage from "@/pages/SchedulePage";
+import RecordsPage from "@/pages/RecordsPage";
+import HealthCardPage from "@/pages/HealthCardPage";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import doctorImage from '@assets/generated_images/Female_doctor_professional_headshot_cbc51cc9.png';
@@ -58,35 +55,35 @@ type UserRole = "admin" | "doctor" | "staff" | "patient" | null;
 
 function AppSidebar({ role, onLogout }: { role: UserRole; onLogout: () => void }) {
   const adminMenuItems = [
-    { title: "Dashboard", icon: LayoutDashboard, url: "/dashboard" },
-    { title: "Appointments", icon: Calendar, url: "/dashboard/appointments" },
-    { title: "Patients", icon: Users, url: "/dashboard/patients" },
-    { title: "Staff", icon: Users, url: "/dashboard/staff" },
-    { title: "Reports", icon: FileText, url: "/dashboard/reports" },
-    { title: "Settings", icon: Settings, url: "/dashboard/settings" },
+    { title: "Dashboard", icon: LayoutDashboard, url: "/" },
+    { title: "Appointments", icon: Calendar, url: "/appointments" },
+    { title: "Patients", icon: Users, url: "/patients" },
+    { title: "Staff", icon: Users, url: "/staff" },
+    { title: "Reports", icon: FileText, url: "/reports" },
+    { title: "Settings", icon: Settings, url: "/settings" },
   ];
 
   const doctorMenuItems = [
-    { title: "Dashboard", icon: LayoutDashboard, url: "/dashboard" },
-    { title: "My Schedule", icon: Calendar, url: "/dashboard/schedule" },
-    { title: "Patients", icon: Users, url: "/dashboard/patients" },
-    { title: "Medical Records", icon: FileText, url: "/dashboard/records" },
-    { title: "Settings", icon: Settings, url: "/dashboard/settings" },
+    { title: "Dashboard", icon: LayoutDashboard, url: "/" },
+    { title: "My Schedule", icon: Calendar, url: "/schedule" },
+    { title: "Patients", icon: Users, url: "/patients" },
+    { title: "Medical Records", icon: FileText, url: "/records" },
+    { title: "Settings", icon: Settings, url: "/settings" },
   ];
 
   const staffMenuItems = [
-    { title: "Dashboard", icon: LayoutDashboard, url: "/dashboard" },
-    { title: "Appointments", icon: Calendar, url: "/dashboard/appointments" },
-    { title: "Patients", icon: Users, url: "/dashboard/patients" },
-    { title: "Settings", icon: Settings, url: "/dashboard/settings" },
+    { title: "Dashboard", icon: LayoutDashboard, url: "/" },
+    { title: "Appointments", icon: Calendar, url: "/appointments" },
+    { title: "Patients", icon: Users, url: "/patients" },
+    { title: "Settings", icon: Settings, url: "/settings" },
   ];
 
   const patientMenuItems = [
-    { title: "Dashboard", icon: LayoutDashboard, url: "/dashboard" },
-    { title: "Appointments", icon: Calendar, url: "/dashboard/appointments" },
-    { title: "Medical Records", icon: FileText, url: "/dashboard/records" },
-    { title: "Health Card", icon: CreditCard, url: "/dashboard/health-card" },
-    { title: "Settings", icon: Settings, url: "/dashboard/settings" },
+    { title: "Dashboard", icon: LayoutDashboard, url: "/" },
+    { title: "Appointments", icon: Calendar, url: "/appointments" },
+    { title: "Medical Records", icon: FileText, url: "/records" },
+    { title: "Health Card", icon: CreditCard, url: "/health-card" },
+    { title: "Settings", icon: Settings, url: "/settings" },
   ];
 
   const menuItems = 
@@ -150,12 +147,12 @@ function AppSidebar({ role, onLogout }: { role: UserRole; onLogout: () => void }
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="w-full justify-start" data-testid={`nav-${item.title.toLowerCase().replace(' ', '-')}`}>
-                    <Link href={item.url} className="w-full inline-flex items-center">
+                  <Link href={item.url} className="w-full">
+                    <SidebarMenuButton className="w-full justify-start" data-testid={`nav-${item.title.toLowerCase().replace(' ', '-')}`}>
                       <item.icon className="w-4 h-4" />
-                      <span className="ml-2">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </Link>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -194,119 +191,25 @@ function AppSidebar({ role, onLogout }: { role: UserRole; onLogout: () => void }
   );
 }
 
-function PatientLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <AppSidebar role="patient" onLogout={() => {
-        logOut().then(() => window.location.href = '/');
-      }} />
-      <div className="flex-1 overflow-y-auto p-6">
-        {children}
-      </div>
-    </div>
-  );
-}
-
 function Router({ role }: { role: UserRole }) {
-  if (role === "admin") {
-    return (
-      <Switch>
-        <Route path="/dashboard">
-          <AdminDashboard />
-        </Route>
-        <Route path="/dashboard/appointments">
-          <AppointmentsPage />
-        </Route>
-        <Route path="/dashboard/patients">
-          <PatientsPage />
-        </Route>
-        <Route path="/dashboard/staff">
-          <StaffPage />
-        </Route>
-        <Route path="/dashboard/reports">
-          <ReportsPage />
-        </Route>
-        <Route path="/dashboard/settings">
-          <SettingsPage />
-        </Route>
-        <Route path="/:rest*">
-          <AdminDashboard />
-        </Route>
-      </Switch>
-    );
-  }
-  
-  if (role === "doctor") {
-    return (
-      <Switch>
-        <Route path="/dashboard">
-          <DoctorDashboard />
-        </Route>
-        <Route path="/dashboard/schedule">
-          <DoctorDashboard />
-        </Route>
-        <Route path="/dashboard/patients">
-          <DoctorDashboard />
-        </Route>
-        <Route path="/dashboard/records">
-          <DoctorDashboard />
-        </Route>
-        <Route path="/dashboard/settings">
-          <DoctorDashboard />
-        </Route>
-        <Route path="/:rest*">
-          <DoctorDashboard />
-        </Route>
-      </Switch>
-    );
-  }
-  
-  if (role === "staff") {
-    return (
-      <Switch>
-        <Route path="/dashboard">
-          <StaffDashboard />
-        </Route>
-        <Route path="/dashboard/appointments">
-          <StaffDashboard />
-        </Route>
-        <Route path="/dashboard/patients">
-          <StaffDashboard />
-        </Route>
-        <Route path="/dashboard/settings">
-          <StaffDashboard />
-        </Route>
-        <Route path="/:rest*">
-          <StaffDashboard />
-        </Route>
-      </Switch>
-    );
-  }
-  
-  // Patient routes with consistent layout
+  // Common routes available inside the dashboard area. Role-specific
+  // pages are still respected by conditional rendering inside those pages.
   return (
-    <PatientLayout>
-      <Switch>
-        <Route path="/dashboard/appointments">
-          <PatientAppointmentsPage />
-        </Route>
-        <Route path="/dashboard/records">
-          <PatientRecordsPage />
-        </Route>
-        <Route path="/dashboard/health-card">
-          <PatientHealthCardPage />
-        </Route>
-        <Route path="/dashboard/settings">
-          <PatientSettingsPage />
-        </Route>
-        <Route path="/dashboard">
-          <PatientDashboardPage />
-        </Route>
-        <Route path="/:rest*">
-          <PatientDashboardPage />
-        </Route>
-      </Switch>
-    </PatientLayout>
+    <Switch>
+      <Route path="/dashboard" component={role === "admin" ? AdminDashboard : role === "doctor" ? DoctorDashboard : role === "staff" ? StaffDashboard : PatientDashboard} />
+
+      <Route path="/appointments" component={AppointmentsPage} />
+      <Route path="/patients" component={PatientsPage} />
+      <Route path="/staff" component={StaffPage} />
+      <Route path="/reports" component={ReportsPage} />
+      <Route path="/settings" component={SettingsPage} />
+      <Route path="/schedule" component={SchedulePage} />
+      <Route path="/records" component={RecordsPage} />
+      <Route path="/health-card" component={HealthCardPage} />
+
+      {/* Fallback to role dashboard for any other path */}
+      <Route path="/:rest*" component={role === "admin" ? AdminDashboard : role === "doctor" ? DoctorDashboard : role === "staff" ? StaffDashboard : PatientDashboard} />
+    </Switch>
   );
 }
 
@@ -413,18 +316,14 @@ function DashboardLayout({ role, onLogout }: { role: UserRole; onLogout: () => v
 
 function App() {
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <TooltipProvider>
-            <ErrorBoundary>
-              <AppContent />
-            </ErrorBoundary>
-            <Toaster />
-          </TooltipProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <AppContent />
+          <Toaster />
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

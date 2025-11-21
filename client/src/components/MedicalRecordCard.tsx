@@ -48,8 +48,11 @@ export default function MedicalRecordCard({
             </span>
           </div>
         </div>
-        <Badge className={recordTypeColors[recordType]}>
-          {recordType.charAt(0).toUpperCase() + recordType.slice(1)}
+        <Badge className={recordTypeColors[recordType || 'other']}>
+          {(recordType && typeof recordType === 'string')
+            ? recordType.charAt(0).toUpperCase() + recordType.slice(1)
+            : 'Other'
+          }
         </Badge>
       </CardHeader>
       <CardContent className="space-y-3">

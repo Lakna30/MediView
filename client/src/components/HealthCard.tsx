@@ -27,8 +27,15 @@ export default function HealthCard({
   onDownload,
   onPrint,
 }: HealthCardProps) {
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  const getInitials = (name?: string) => {
+    if (!name || typeof name !== 'string') return "";
+    return name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(n => n[0])
+      .join("")
+      .toUpperCase();
   };
 
   const qrData = JSON.stringify({
